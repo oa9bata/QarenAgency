@@ -5,20 +5,34 @@ let supabase = null;
 window.addEventListener('load', function() {
     console.log('🚀 Page loaded, initializing JavaScript...');
     
-    // Try to initialize Supabase (without import.meta)
+    // Check if Supabase library is available
+    console.log('🔍 Checking Supabase library...', typeof window.supabase);
+    
+    // Try to initialize Supabase with environment variables
     try {
-        // Use environment variables if available (will be set by Vercel)
-        const SUPABASE_URL = window.ENV?.VITE_SUPABASE_URL || process?.env?.VITE_SUPABASE_URL || null;
-        const SUPABASE_ANON_KEY = window.ENV?.VITE_SUPABASE_ANON_KEY || process?.env?.VITE_SUPABASE_ANON_KEY || null;
+        const config = window.SUPABASE_CONFIG || {};
+        const SUPABASE_URL = config.url;
+        const SUPABASE_ANON_KEY = config.key;
         
-        if (SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase) {
+        console.log('🔍 Environment check:', {
+            hasUrl: !!SUPABASE_URL,
+            hasKey: !!SUPABASE_ANON_KEY,
+            hasSupabase: !!window.supabase
+        });
+        
+        if (window.supabase && window.supabase.createClient && SUPABASE_URL && SUPABASE_ANON_KEY) {
             supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-            console.log('✅ Supabase connected');
+            console.log('✅ Supabase connected successfully!');
         } else {
-            console.log('⚠️ Supabase not configured - forms will work without database');
+            console.log('❌ Supabase not configured - missing environment variables or library');
+            console.log('📋 Debug info:', {
+                url: SUPABASE_URL ? 'Set' : 'Missing',
+                key: SUPABASE_ANON_KEY ? 'Set' : 'Missing',
+                library: window.supabase ? 'Loaded' : 'Missing'
+            });
         }
     } catch (error) {
-        console.log('⚠️ Supabase setup failed - forms will work without database');
+        console.log('❌ Supabase setup failed:', error.message);
     }
     
     // Initialize all functionality
