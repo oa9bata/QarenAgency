@@ -15,18 +15,20 @@ const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const hamburger = document.querySelector('.hamburger');
 const navMenu = document.querySelector('.nav-menu');
 
-hamburger.addEventListener('click', () => {
-    hamburger.classList.toggle('active');
-    navMenu.classList.toggle('active');
-});
-
-// Close mobile menu when clicking on a link
-document.querySelectorAll('.nav-menu a').forEach(link => {
-    link.addEventListener('click', () => {
-        hamburger.classList.remove('active');
-        navMenu.classList.remove('active');
+if (hamburger && navMenu) {
+    hamburger.addEventListener('click', () => {
+        hamburger.classList.toggle('active');
+        navMenu.classList.toggle('active');
     });
-});
+
+    // Close mobile menu when clicking on a link
+    document.querySelectorAll('.nav-menu a').forEach(link => {
+        link.addEventListener('click', () => {
+            hamburger.classList.remove('active');
+            navMenu.classList.remove('active');
+        });
+    });
+}
 
 // Smooth scrolling for navigation links
 document.querySelectorAll('a[href^="#"]').forEach(anchor => {
@@ -61,225 +63,247 @@ const ctaSection = document.querySelector('.cta-section');
 const contactInfo = document.querySelector('.contact-info');
 const thankYouMessage = document.querySelector('.thank-you-message');
 
-ctaButton.addEventListener('click', async (e) => {
-    e.preventDefault();
-    const phone = phoneInput.value.trim();
-    
-    if (phone && isValidPhone(phone)) {
+if (ctaButton && phoneInput) {
+    ctaButton.addEventListener('click', async (e) => {
+        e.preventDefault();
+        const phone = phoneInput.value.trim();
+        
+        if (phone && isValidPhone(phone)) {
+            // Show loading state
+            ctaButton.textContent = 'جاري الإرسال...';
+            ctaButton.disabled = true;
+            ctaButton.style.background = 'rgba(117, 79, 61, 0.8)';
+            
+            try {
+                // Check if Supabase is available
+                if (typeof supabase !== 'undefined' && supabase) {
+                    // Save to Supabase
+                    const { data, error } = await supabase
+                        .from('contact_submissions')
+                        .insert([
+                            {
+                                phone: phone,
+                                submission_type: 'hero'
+                            }
+                        ]);
+
+                    if (error) {
+                        throw error;
+                    }
+                }
+
+                // Success - hide form and show thank you message
+                setTimeout(() => {
+                    if (ctaSection) {
+                        ctaSection.style.opacity = '0';
+                        ctaSection.style.transform = 'translateY(-20px)';
+                    }
+                    if (contactInfo) {
+                        contactInfo.style.opacity = '0';
+                        contactInfo.style.transform = 'translateY(-20px)';
+                    }
+                    
+                    setTimeout(() => {
+                        if (ctaSection) ctaSection.style.display = 'none';
+                        if (contactInfo) contactInfo.style.display = 'none';
+                        
+                        // Show thank you message
+                        if (thankYouMessage) {
+                            thankYouMessage.style.display = 'block';
+                            setTimeout(() => {
+                                thankYouMessage.classList.add('show');
+                            }, 100);
+                        }
+                    }, 300);
+                }, 500);
+
+            } catch (error) {
+                console.error('Error saving to database:', error);
+                showError('حدث خطأ أثناء الإرسال. يرجى المحاولة مرة أخرى');
+                
+                // Reset button state
+                ctaButton.textContent = 'ابدأ';
+                ctaButton.disabled = false;
+                ctaButton.style.background = 'linear-gradient(135deg, #754F3D, #ffffff)';
+            }
+        } else {
+            showError('يرجى إدخال رقم هاتف سعودي صحيح');
+        }
+    });
+}
+
+// Contact form submission with Supabase integration
+const contactForm = document.querySelector('.contact-form');
+
+if (contactForm) {
+    contactForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const nameField = contactForm.querySelector('input[type="text"]');
+        const emailField = contactForm.querySelector('input[type="email"]');
+        const phoneField = contactForm.querySelector('input[type="tel"]');
+        const messageField = contactForm.querySelector('textarea');
+        const submitButton = contactForm.querySelector('button[type="submit"]');
+        const originalText = submitButton.textContent;
+        
+        // Get form values
+        const name = nameField ? nameField.value.trim() : '';
+        const email = emailField ? emailField.value.trim() : '';
+        const phone = phoneField ? phoneField.value.trim() : '';
+        const message = messageField ? messageField.value.trim() : '';
+        
+        // Validate required fields
+        if (!name || !email || !message) {
+            showError('يرجى ملء جميع الحقول المطلوبة');
+            return;
+        }
+        
+        // Validate phone number if provided
+        if (phone && !isValidPhone(phone)) {
+            showError('يرجى إدخال رقم هاتف سعودي صحيح');
+            return;
+        }
+        
         // Show loading state
-        ctaButton.textContent = 'جاري الإرسال...';
-        ctaButton.disabled = true;
-        ctaButton.style.background = 'rgba(117, 79, 61, 0.8)';
+        submitButton.textContent = 'جاري الإرسال...';
+        submitButton.disabled = true;
+        submitButton.style.background = 'rgba(117, 79, 61, 0.8)';
         
         try {
-            // Save to Supabase
-            const { data, error } = await supabase
-                .from('contact_submissions')
-                .insert([
-                    {
-                        phone: phone,
-                        submission_type: 'hero'
-                    }
-                ]);
+            // Check if Supabase is available
+            if (typeof supabase !== 'undefined' && supabase) {
+                // Save to Supabase
+                const { data, error } = await supabase
+                    .from('contact_submissions')
+                    .insert([
+                        {
+                            name: name,
+                            email: email,
+                            phone: phone || null,
+                            message: message,
+                            submission_type: 'contact'
+                        }
+                    ]);
 
-            if (error) {
-                throw error;
+                if (error) {
+                    throw error;
+                }
             }
 
-            // Success - hide form and show thank you message
+            // Success
+            submitButton.textContent = 'تم الإرسال!';
+            submitButton.style.background = 'linear-gradient(135deg, #754F3D, #ffffff)';
+            contactForm.reset();
+            
             setTimeout(() => {
-                ctaSection.style.opacity = '0';
-                ctaSection.style.transform = 'translateY(-20px)';
-                contactInfo.style.opacity = '0';
-                contactInfo.style.transform = 'translateY(-20px)';
-                
-                setTimeout(() => {
-                    ctaSection.style.display = 'none';
-                    contactInfo.style.display = 'none';
-                    
-                    // Show thank you message
-                    thankYouMessage.style.display = 'block';
-                    setTimeout(() => {
-                        thankYouMessage.classList.add('show');
-                    }, 100);
-                }, 300);
-            }, 500);
+                submitButton.textContent = originalText;
+                submitButton.disabled = false;
+            }, 2000);
 
         } catch (error) {
             console.error('Error saving to database:', error);
             showError('حدث خطأ أثناء الإرسال. يرجى المحاولة مرة أخرى');
             
             // Reset button state
-            ctaButton.textContent = 'ابدأ';
-            ctaButton.disabled = false;
-            ctaButton.style.background = 'linear-gradient(135deg, #754F3D, #ffffff)';
-        }
-    } else {
-        showError('يرجى إدخال رقم هاتف سعودي صحيح');
-    }
-});
-
-// Contact form submission with Supabase integration
-const contactForm = document.querySelector('.contact-form');
-
-contactForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
-    const formData = new FormData(contactForm);
-    const nameField = contactForm.querySelector('input[type="text"]');
-    const emailField = contactForm.querySelector('input[type="email"]');
-    const phoneField = contactForm.querySelector('input[type="tel"]');
-    const messageField = contactForm.querySelector('textarea');
-    const submitButton = contactForm.querySelector('button[type="submit"]');
-    const originalText = submitButton.textContent;
-    
-    // Get form values
-    const name = nameField.value.trim();
-    const email = emailField.value.trim();
-    const phone = phoneField.value.trim();
-    const message = messageField.value.trim();
-    
-    // Validate required fields
-    if (!name || !email || !message) {
-        showError('يرجى ملء جميع الحقول المطلوبة');
-        return;
-    }
-    
-    // Validate phone number if provided
-    if (phone && !isValidPhone(phone)) {
-        showError('يرجى إدخال رقم هاتف سعودي صحيح');
-        return;
-    }
-    
-    // Show loading state
-    submitButton.textContent = 'جاري الإرسال...';
-    submitButton.disabled = true;
-    submitButton.style.background = 'rgba(117, 79, 61, 0.8)';
-    
-    try {
-        // Save to Supabase
-        const { data, error } = await supabase
-            .from('contact_submissions')
-            .insert([
-                {
-                    name: name,
-                    email: email,
-                    phone: phone || null,
-                    message: message,
-                    submission_type: 'contact'
-                }
-            ]);
-
-        if (error) {
-            throw error;
-        }
-
-        // Success
-        submitButton.textContent = 'تم الإرسال!';
-        submitButton.style.background = 'linear-gradient(135deg, #754F3D, #ffffff)';
-        contactForm.reset();
-        
-        setTimeout(() => {
             submitButton.textContent = originalText;
             submitButton.disabled = false;
-        }, 2000);
-
-    } catch (error) {
-        console.error('Error saving to database:', error);
-        showError('حدث خطأ أثناء الإرسال. يرجى المحاولة مرة أخرى');
-        
-        // Reset button state
-        submitButton.textContent = originalText;
-        submitButton.disabled = false;
-        submitButton.style.background = 'linear-gradient(135deg, #754F3D, #ffffff)';
-    }
-});
-
-// Enhanced Intersection Observer for animations
-const observerOptions = {
-    threshold: 0.2,
-    rootMargin: '0px 0px -50px 0px'
-};
-
-const animateOnScroll = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-        if (entry.isIntersecting) {
-            entry.target.style.opacity = '1';
-            entry.target.style.transform = 'translateY(0)';
-            
-            // Add staggered animation for multiple elements
-            const siblings = entry.target.parentElement.children;
-            Array.from(siblings).forEach((sibling, index) => {
-                if (sibling.classList.contains('animate-on-scroll')) {
-                    setTimeout(() => {
-                        sibling.style.opacity = '1';
-                        sibling.style.transform = 'translateY(0)';
-                    }, index * 200);
-                }
-            });
+            submitButton.style.background = 'linear-gradient(135deg, #754F3D, #ffffff)';
         }
     });
-}, observerOptions);
-
-// Apply animation to cards
-document.querySelectorAll('.service-card, .portfolio-card').forEach((card, index) => {
-    card.classList.add('animate-on-scroll');
-    card.style.opacity = '0';
-    card.style.transform = 'translateY(50px)';
-    card.style.transition = `opacity 0.8s ease ${index * 0.2}s, transform 0.8s ease ${index * 0.2}s`;
-    animateOnScroll.observe(card);
-});
-
-// Enhanced stats counter animation
-function animateCounter(element, target, duration = 2000) {
-    let startTime = null;
-    const startValue = 0;
-    
-    function updateCounter(currentTime) {
-        if (!startTime) startTime = currentTime;
-        const progress = Math.min((currentTime - startTime) / duration, 1);
-        
-        // Easing function for smooth animation
-        const easeOutQuart = 1 - Math.pow(1 - progress, 4);
-        const currentValue = Math.floor(startValue + (target - startValue) * easeOutQuart);
-        
-        element.textContent = currentValue + '+';
-        
-        if (progress < 1) {
-            requestAnimationFrame(updateCounter);
-        } else {
-            element.textContent = target + '+';
-        }
-    }
-    
-    requestAnimationFrame(updateCounter);
 }
 
-// Trigger stats animation when about section is visible
-const aboutSection = document.querySelector('.about');
-let statsAnimated = false;
+// Enhanced Intersection Observer for animations
+function initializeScrollAnimations() {
+    const observerOptions = {
+        threshold: 0.2,
+        rootMargin: '0px 0px -50px 0px'
+    };
 
-const statsObserver = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-        if (entry.isIntersecting && !statsAnimated) {
-            statsAnimated = true;
-            
-            // Animate each stat counter with delay
-            const statNumbers = document.querySelectorAll('.stat-number');
-            statNumbers.forEach((stat, index) => {
-                const target = parseInt(stat.getAttribute('data-target'));
-                setTimeout(() => {
-                    animateCounter(stat, target, 2500);
-                }, index * 300);
-            });
-            
-            statsObserver.unobserve(entry.target);
-        }
+    const animateOnScroll = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.opacity = '1';
+                entry.target.style.transform = 'translateY(0)';
+                
+                // Add staggered animation for multiple elements
+                const siblings = entry.target.parentElement.children;
+                Array.from(siblings).forEach((sibling, index) => {
+                    if (sibling.classList.contains('animate-on-scroll')) {
+                        setTimeout(() => {
+                            sibling.style.opacity = '1';
+                            sibling.style.transform = 'translateY(0)';
+                        }, index * 200);
+                    }
+                });
+            }
+        });
+    }, observerOptions);
+
+    // Apply animation to cards
+    document.querySelectorAll('.service-card, .portfolio-card').forEach((card, index) => {
+        card.classList.add('animate-on-scroll');
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(50px)';
+        card.style.transition = `opacity 0.8s ease ${index * 0.2}s, transform 0.8s ease ${index * 0.2}s`;
+        animateOnScroll.observe(card);
     });
-}, { threshold: 0.3 });
+}
 
-if (aboutSection) {
-    statsObserver.observe(aboutSection);
+// Stats animation function
+function initializeStatsAnimation() {
+    // Enhanced stats counter animation
+    function animateCounter(element, target, duration = 2000) {
+        let startTime = null;
+        const startValue = 0;
+        
+        function updateCounter(currentTime) {
+            if (!startTime) startTime = currentTime;
+            const progress = Math.min((currentTime - startTime) / duration, 1);
+            
+            // Easing function for smooth animation
+            const easeOutQuart = 1 - Math.pow(1 - progress, 4);
+            const currentValue = Math.floor(startValue + (target - startValue) * easeOutQuart);
+            
+            element.textContent = currentValue + '+';
+            
+            if (progress < 1) {
+                requestAnimationFrame(updateCounter);
+            } else {
+                element.textContent = target + '+';
+            }
+        }
+        
+        requestAnimationFrame(updateCounter);
+    }
+
+    // Trigger stats animation when about section is visible
+    const aboutSection = document.querySelector('.about');
+    let statsAnimated = false;
+
+    const statsObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting && !statsAnimated) {
+                statsAnimated = true;
+                
+                // Animate each stat counter with delay
+                const statNumbers = document.querySelectorAll('.stat-number');
+                statNumbers.forEach((stat, index) => {
+                    const target = parseInt(stat.getAttribute('data-target'));
+                    if (target && !isNaN(target)) {
+                        setTimeout(() => {
+                            animateCounter(stat, target, 2500);
+                        }, index * 300);
+                    }
+                });
+                
+                statsObserver.unobserve(entry.target);
+            }
+        });
+    }, { threshold: 0.3 });
+
+    if (aboutSection) {
+        statsObserver.observe(aboutSection);
+    }
 }
 
 // Enhanced service card hover effects
@@ -528,4 +552,8 @@ document.addEventListener('DOMContentLoaded', () => {
             item.style.transform = 'translateY(0)';
         }, 500 + (index * 100));
     });
+
+    // Initialize scroll animations after DOM is loaded
+    initializeScrollAnimations();
+    initializeStatsAnimation();
 });
