@@ -975,3 +975,7 @@ body {
         font-size: 1rem;
     }
 }
+
+.logo {
+    cursor: pointer;
+}
