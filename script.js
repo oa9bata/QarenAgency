@@ -1,15 +1,20 @@
-// Supabase Configuration
-// Use environment variables for security
-const SUPABASE_URL = import.meta.env?.VITE_SUPABASE_URL;
-const SUPABASE_ANON_KEY = import.meta.env?.VITE_SUPABASE_ANON_KEY;
+// script.js
+let supabase = null;
 
-// Check if environment variables are loaded
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-    console.error('Supabase environment variables not found. Please check your .env file.');
+// Try to initialize Supabase (won't break animations if it fails)
+try {
+    const SUPABASE_URL = import.meta?.env?.VITE_SUPABASE_URL;
+    const SUPABASE_ANON_KEY = import.meta?.env?.VITE_SUPABASE_ANON_KEY;
+    
+    if (SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase) {
+        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        console.log('✅ Supabase connected');
+    } else {
+        console.log('⚠️ Supabase not configured - forms will work without database');
+    }
+} catch (error) {
+    console.log('⚠️ Supabase setup failed - forms will work without database');
 }
-
-// Initialize Supabase client
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // Mobile Navigation Toggle
 const hamburger = document.querySelector('.hamburger');
@@ -47,16 +52,18 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
 // Navbar background on scroll
 window.addEventListener('scroll', () => {
     const navbar = document.querySelector('.navbar');
-    if (window.scrollY > 50) {
-        navbar.style.background = 'rgba(117, 79, 61, 0.15)';
-        navbar.style.backdropFilter = 'blur(25px)';
-    } else {
-        navbar.style.background = 'rgba(117, 79, 61, 0.1)';
-        navbar.style.backdropFilter = 'blur(20px)';
+    if (navbar) {
+        if (window.scrollY > 50) {
+            navbar.style.background = 'rgba(117, 79, 61, 0.15)';
+            navbar.style.backdropFilter = 'blur(25px)';
+        } else {
+            navbar.style.background = 'rgba(117, 79, 61, 0.1)';
+            navbar.style.backdropFilter = 'blur(20px)';
+        }
     }
 });
 
-// Hero phone form submission with Supabase
+// Hero phone form submission
 const phoneInput = document.querySelector('.phone-input');
 const ctaButton = document.querySelector('.cta-button');
 const ctaSection = document.querySelector('.cta-section');
@@ -74,65 +81,54 @@ if (ctaButton && phoneInput) {
             ctaButton.disabled = true;
             ctaButton.style.background = 'rgba(117, 79, 61, 0.8)';
             
+            // Try to save to database (animations work regardless)
             try {
-                // Check if Supabase is available
-                if (typeof supabase !== 'undefined' && supabase) {
-                    // Save to Supabase
+                if (supabase) {
                     const { data, error } = await supabase
                         .from('contact_submissions')
-                        .insert([
-                            {
-                                phone: phone,
-                                submission_type: 'hero'
-                            }
-                        ]);
-
-                    if (error) {
-                        throw error;
-                    }
-                }
-
-                // Success - hide form and show thank you message
-                setTimeout(() => {
-                    if (ctaSection) {
-                        ctaSection.style.opacity = '0';
-                        ctaSection.style.transform = 'translateY(-20px)';
-                    }
-                    if (contactInfo) {
-                        contactInfo.style.opacity = '0';
-                        contactInfo.style.transform = 'translateY(-20px)';
-                    }
+                        .insert([{
+                            phone: phone,
+                            submission_type: 'hero'
+                        }]);
                     
-                    setTimeout(() => {
-                        if (ctaSection) ctaSection.style.display = 'none';
-                        if (contactInfo) contactInfo.style.display = 'none';
-                        
-                        // Show thank you message
-                        if (thankYouMessage) {
-                            thankYouMessage.style.display = 'block';
-                            setTimeout(() => {
-                                thankYouMessage.classList.add('show');
-                            }, 100);
-                        }
-                    }, 300);
-                }, 500);
-
+                    if (error) throw error;
+                    console.log('✅ Phone saved to database');
+                }
             } catch (error) {
-                console.error('Error saving to database:', error);
-                showError('حدث خطأ أثناء الإرسال. يرجى المحاولة مرة أخرى');
-                
-                // Reset button state
-                ctaButton.textContent = 'ابدأ';
-                ctaButton.disabled = false;
-                ctaButton.style.background = 'linear-gradient(135deg, #754F3D, #ffffff)';
+                console.log('⚠️ Database save failed, but form still works:', error);
             }
+            
+            // Show success animation (works always)
+            setTimeout(() => {
+                if (ctaSection) {
+                    ctaSection.style.opacity = '0';
+                    ctaSection.style.transform = 'translateY(-20px)';
+                }
+                if (contactInfo) {
+                    contactInfo.style.opacity = '0';
+                    contactInfo.style.transform = 'translateY(-20px)';
+                }
+                
+                setTimeout(() => {
+                    if (ctaSection) ctaSection.style.display = 'none';
+                    if (contactInfo) contactInfo.style.display = 'none';
+                    
+                    // Show thank you message
+                    if (thankYouMessage) {
+                        thankYouMessage.style.display = 'block';
+                        setTimeout(() => {
+                            thankYouMessage.classList.add('show');
+                        }, 100);
+                    }
+                }, 300);
+            }, 1500);
         } else {
             showError('يرجى إدخال رقم هاتف سعودي صحيح');
         }
     });
 }
 
-// Contact form submission with Supabase integration
+// Contact form submission
 const contactForm = document.querySelector('.contact-form');
 
 if (contactForm) {
@@ -169,28 +165,28 @@ if (contactForm) {
         submitButton.disabled = true;
         submitButton.style.background = 'rgba(117, 79, 61, 0.8)';
         
+        // Try to save to database (animations work regardless)
         try {
-            // Check if Supabase is available
-            if (typeof supabase !== 'undefined' && supabase) {
-                // Save to Supabase
+            if (supabase) {
                 const { data, error } = await supabase
                     .from('contact_submissions')
-                    .insert([
-                        {
-                            name: name,
-                            email: email,
-                            phone: phone || null,
-                            message: message,
-                            submission_type: 'contact'
-                        }
-                    ]);
-
-                if (error) {
-                    throw error;
-                }
+                    .insert([{
+                        name: name,
+                        email: email,
+                        phone: phone || null,
+                        message: message,
+                        submission_type: 'contact'
+                    }]);
+                
+                if (error) throw error;
+                console.log('✅ Contact form saved to database');
             }
-
-            // Success
+        } catch (error) {
+            console.log('⚠️ Database save failed, but form still works:', error);
+        }
+        
+        // Show success animation (works always)
+        setTimeout(() => {
             submitButton.textContent = 'تم الإرسال!';
             submitButton.style.background = 'linear-gradient(135deg, #754F3D, #ffffff)';
             contactForm.reset();
@@ -199,117 +195,89 @@ if (contactForm) {
                 submitButton.textContent = originalText;
                 submitButton.disabled = false;
             }, 2000);
-
-        } catch (error) {
-            console.error('Error saving to database:', error);
-            showError('حدث خطأ أثناء الإرسال. يرجى المحاولة مرة أخرى');
-            
-            // Reset button state
-            submitButton.textContent = originalText;
-            submitButton.disabled = false;
-            submitButton.style.background = 'linear-gradient(135deg, #754F3D, #ffffff)';
-        }
+        }, 1500);
     });
 }
 
-// Enhanced Intersection Observer for animations
-function initializeScrollAnimations() {
-    const observerOptions = {
-        threshold: 0.2,
-        rootMargin: '0px 0px -50px 0px'
-    };
-
-    const animateOnScroll = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.style.opacity = '1';
-                entry.target.style.transform = 'translateY(0)';
-                
-                // Add staggered animation for multiple elements
-                const siblings = entry.target.parentElement.children;
-                Array.from(siblings).forEach((sibling, index) => {
-                    if (sibling.classList.contains('animate-on-scroll')) {
-                        setTimeout(() => {
-                            sibling.style.opacity = '1';
-                            sibling.style.transform = 'translateY(0)';
-                        }, index * 200);
-                    }
-                });
-            }
-        });
-    }, observerOptions);
-
-    // Apply animation to cards
-    document.querySelectorAll('.service-card, .portfolio-card').forEach((card, index) => {
-        card.classList.add('animate-on-scroll');
-        card.style.opacity = '0';
-        card.style.transform = 'translateY(50px)';
-        card.style.transition = `opacity 0.8s ease ${index * 0.2}s, transform 0.8s ease ${index * 0.2}s`;
-        animateOnScroll.observe(card);
-    });
-}
-
-// Stats animation function
-function initializeStatsAnimation() {
-    // Enhanced stats counter animation
-    function animateCounter(element, target, duration = 2000) {
-        let startTime = null;
-        const startValue = 0;
+// Stats counter animation
+function animateCounter(element, target, duration = 2000) {
+    let startTime = null;
+    const startValue = 0;
+    
+    function updateCounter(currentTime) {
+        if (!startTime) startTime = currentTime;
+        const progress = Math.min((currentTime - startTime) / duration, 1);
         
-        function updateCounter(currentTime) {
-            if (!startTime) startTime = currentTime;
-            const progress = Math.min((currentTime - startTime) / duration, 1);
-            
-            // Easing function for smooth animation
-            const easeOutQuart = 1 - Math.pow(1 - progress, 4);
-            const currentValue = Math.floor(startValue + (target - startValue) * easeOutQuart);
-            
-            element.textContent = currentValue + '+';
-            
-            if (progress < 1) {
-                requestAnimationFrame(updateCounter);
-            } else {
-                element.textContent = target + '+';
-            }
+        // Easing function for smooth animation
+        const easeOutQuart = 1 - Math.pow(1 - progress, 4);
+        const currentValue = Math.floor(startValue + (target - startValue) * easeOutQuart);
+        
+        element.textContent = currentValue + '+';
+        
+        if (progress < 1) {
+            requestAnimationFrame(updateCounter);
+        } else {
+            element.textContent = target + '+';
         }
-        
-        requestAnimationFrame(updateCounter);
     }
-
-    // Trigger stats animation when about section is visible
-    const aboutSection = document.querySelector('.about');
-    let statsAnimated = false;
-
-    const statsObserver = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting && !statsAnimated) {
-                statsAnimated = true;
-                
-                // Animate each stat counter with delay
-                const statNumbers = document.querySelectorAll('.stat-number');
-                statNumbers.forEach((stat, index) => {
-                    const target = parseInt(stat.getAttribute('data-target'));
-                    if (target && !isNaN(target)) {
-                        setTimeout(() => {
-                            animateCounter(stat, target, 2500);
-                        }, index * 300);
-                    }
-                });
-                
-                statsObserver.unobserve(entry.target);
-            }
-        });
-    }, { threshold: 0.3 });
-
-    if (aboutSection) {
-        statsObserver.observe(aboutSection);
-    }
+    
+    requestAnimationFrame(updateCounter);
 }
 
-// Enhanced service card hover effects
+// Intersection Observer for animations
+const observerOptions = {
+    threshold: 0.2,
+    rootMargin: '0px 0px -50px 0px'
+};
+
+// Animate cards on scroll
+const cardObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            entry.target.style.opacity = '1';
+            entry.target.style.transform = 'translateY(0)';
+        }
+    });
+}, observerOptions);
+
+// Apply animation to service and portfolio cards
+document.querySelectorAll('.service-card, .portfolio-card').forEach((card, index) => {
+    card.style.opacity = '0';
+    card.style.transform = 'translateY(50px)';
+    card.style.transition = `opacity 0.8s ease ${index * 0.2}s, transform 0.8s ease ${index * 0.2}s`;
+    cardObserver.observe(card);
+});
+
+// Stats animation observer
+let statsAnimated = false;
+const statsObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting && !statsAnimated) {
+            statsAnimated = true;
+            
+            // Animate each stat counter with delay
+            const statNumbers = document.querySelectorAll('.stat-number');
+            statNumbers.forEach((stat, index) => {
+                const target = parseInt(stat.getAttribute('data-target'));
+                if (target && !isNaN(target)) {
+                    setTimeout(() => {
+                        animateCounter(stat, target, 2500);
+                    }, index * 300);
+                }
+            });
+        }
+    });
+}, { threshold: 0.3 });
+
+// Observe about section for stats animation
+const aboutSection = document.querySelector('.about');
+if (aboutSection) {
+    statsObserver.observe(aboutSection);
+}
+
+// Enhanced hover effects
 document.querySelectorAll('.service-card').forEach(card => {
     card.addEventListener('mouseenter', () => {
-        // Add subtle rotation and glow effect
         card.style.transform = 'translateY(-15px) rotate(1deg)';
         card.style.boxShadow = '0 25px 50px rgba(117, 79, 61, 0.25)';
     });
@@ -339,7 +307,7 @@ document.querySelectorAll('.portfolio-card').forEach(card => {
     });
 });
 
-// Social links enhanced hover effects
+// Social links hover effects
 document.querySelectorAll('.social-link').forEach(link => {
     link.addEventListener('mouseenter', () => {
         link.style.transform = 'translateY(-8px) rotate(5deg)';
@@ -369,17 +337,15 @@ document.querySelectorAll('.contact-method').forEach(method => {
     });
 });
 
-// Enhanced floating animations with more variety
+// Floating animations
 const floatingElements = document.querySelectorAll('.floating-circle, .gradient-blob, .gradient-circle');
 floatingElements.forEach((element, index) => {
-    // Add random delays and durations for more natural movement
     const delay = Math.random() * 2;
-    const duration = 8 + Math.random() * 4; // Between 8-12 seconds
+    const duration = 8 + Math.random() * 4;
     
     element.style.animationDelay = `${delay}s`;
     element.style.animationDuration = `${duration}s`;
     
-    // Add different animation types
     if (index % 2 === 0) {
         element.style.animationName = 'float';
     } else {
@@ -387,7 +353,7 @@ floatingElements.forEach((element, index) => {
     }
 });
 
-// Parallax effect for hero elements
+// Parallax effect
 window.addEventListener('scroll', () => {
     const scrolled = window.pageYOffset;
     const parallaxElements = document.querySelectorAll('.floating-circle, .gradient-blob');
@@ -401,39 +367,35 @@ window.addEventListener('scroll', () => {
 // Form input focus effects
 document.querySelectorAll('.phone-input, .contact-form input, .contact-form textarea').forEach(input => {
     input.addEventListener('focus', () => {
-        input.parentElement.style.transform = 'scale(1.02)';
+        if (input.parentElement) {
+            input.parentElement.style.transform = 'scale(1.02)';
+        }
     });
     
     input.addEventListener('blur', () => {
-        input.parentElement.style.transform = 'scale(1)';
+        if (input.parentElement) {
+            input.parentElement.style.transform = 'scale(1)';
+        }
     });
 });
 
 // Utility functions
-function isValidEmail(email) {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-}
-
 function isValidPhone(phone) {
-    // Remove all spaces, dashes, and parentheses for validation
     const cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
     
-    // Check for the specific Saudi phone number patterns you requested
     const validPatterns = [
-        /^\+966[0-9]{9}$/, // +966 followed by 9 digits (total 13 chars)
-        /^966[0-9]{9}$/, // 966 followed by 9 digits (total 12 chars)
-        /^9665[0-9]{8}$/, // 9665 followed by 8 digits (total 12 chars)
-        /^\+9665[0-9]{8}$/, // +9665 followed by 8 digits (total 13 chars)
-        /^05[0-9]{8}$/, // 05 followed by 8 digits (total 10 digits)
-        /^5[0-9]{8}$/ // 5 followed by 8 digits (total 9 digits)
+        /^\+966[0-9]{9}$/,
+        /^966[0-9]{9}$/,
+        /^9665[0-9]{8}$/,
+        /^\+9665[0-9]{8}$/,
+        /^05[0-9]{8}$/,
+        /^5[0-9]{8}$/
     ];
     
     return validPatterns.some(pattern => pattern.test(cleanPhone));
 }
 
 function showError(message) {
-    // Create error notification
     const errorDiv = document.createElement('div');
     errorDiv.textContent = message;
     errorDiv.style.cssText = `
@@ -453,7 +415,6 @@ function showError(message) {
     
     document.body.appendChild(errorDiv);
     
-    // Remove error after 4 seconds
     setTimeout(() => {
         errorDiv.style.animation = 'slideOut 0.4s ease';
         setTimeout(() => {
@@ -464,7 +425,7 @@ function showError(message) {
     }, 4000);
 }
 
-// Add CSS animations for notifications and enhanced effects
+// CSS animations
 const style = document.createElement('style');
 style.textContent = `
     @keyframes slideIn {
@@ -488,46 +449,12 @@ style.textContent = `
             opacity: 0;
         }
     }
-    
-    @keyframes glow {
-        0%, 100% {
-            box-shadow: 0 0 20px rgba(117, 79, 61, 0.3);
-        }
-        50% {
-            box-shadow: 0 0 40px rgba(117, 79, 61, 0.6);
-        }
-    }
-    
-    .loading {
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .loading::after {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: -100%;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(90deg, transparent, rgba(117, 79, 61, 0.2), transparent);
-        animation: loading 2s infinite;
-    }
-    
-    @keyframes loading {
-        0% {
-            left: -100%;
-        }
-        100% {
-            left: 100%;
-        }
-    }
 `;
 document.head.appendChild(style);
 
-// Initialize animations when page loads
+// Initialize when page loads
 document.addEventListener('DOMContentLoaded', () => {
-    // Add entrance animation to hero content
+    // Hero entrance animation
     const heroContent = document.querySelector('.hero-content');
     if (heroContent) {
         heroContent.style.opacity = '0';
@@ -540,7 +467,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 300);
     }
     
-    // Add staggered animation to navigation items
+    // Navigation items animation
     const navItems = document.querySelectorAll('.nav-menu a');
     navItems.forEach((item, index) => {
         item.style.opacity = '0';
@@ -552,8 +479,4 @@ document.addEventListener('DOMContentLoaded', () => {
             item.style.transform = 'translateY(0)';
         }, 500 + (index * 100));
     });
-
-    // Initialize scroll animations after DOM is loaded
-    initializeScrollAnimations();
-    initializeStatsAnimation();
 });
