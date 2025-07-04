@@ -1,77 +1,4 @@
-// Utility functions
-function isValidPhone(phone) {
-    const cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
-    
-    const validPatterns = [
-        /^\+966[0-9]{9}$/,
-        /^966[0-9]{9}$/,
-        /^9665[0-9]{8}$/,
-        /^\+9665[0-9]{8}$/,
-        /^05[0-9]{8}$/,
-        /^5[0-9]{8}$/
-    ];
-    
-    return validPatterns.some(function(pattern) {
-        return pattern.test(cleanPhone);
-    });
-}
-
-function showError(message) {
-    const errorDiv = document.createElement('div');
-    errorDiv.textContent = message;
-    errorDiv.style.cssText = [
-        'position: fixed',
-        'top: 20px',
-        'right: 20px',
-        'background: linear-gradient(135deg, #754F3D, #ffffff)',
-        'color: #000000',
-        'padding: 15px 25px',
-        'border-radius: 15px',
-        'z-index: 1000',
-        'font-weight: 600',
-        'font-family: IBM Plex Sans Arabic, sans-serif',
-        'box-shadow: 0 10px 30px rgba(117, 79, 61, 0.3)',
-        'animation: slideIn 0.4s ease'
-    ].join(';');
-    
-    document.body.appendChild(errorDiv);
-    
-    setTimeout(function() {
-        errorDiv.style.animation = 'slideOut 0.4s ease';
-        setTimeout(function() {
-            if (document.body.contains(errorDiv)) {
-                document.body.removeChild(errorDiv);
-            }
-        }, 400);
-    }, 4000);
-}
-
-// CSS animations
-const style = document.createElement('style');
-style.textContent = [
-    '@keyframes slideIn {',
-    '    from {',
-    '        transform: translateX(100%) scale(0.8);',
-    '        opacity: 0;',
-    '    }',
-    '    to {',
-    '        transform: translateX(0) scale(1);',
-    '        opacity: 1;',
-    '    }',
-    '}',
-    '',
-    '@keyframes slideOut {',
-    '    from {',
-    '        transform: translateX(0) scale(1);',
-    '        opacity: 1;',
-    '    }',
-    '    to {',
-    '        transform: translateX(100%) scale(0.8);',
-    '        opacity: 0;',
-    '    }',
-    '}'
-].join('\n');
-document.head.appendChild(style);// Simple Supabase setup (animations work regardless)
+// Simple Supabase setup (animations work regardless)
 let supabase = null;
 
 // Wait for page to fully load
@@ -104,7 +31,6 @@ window.addEventListener('load', function() {
 });
 
 // Navigation functions
-function initializeNavigation() {
 function initializeNavigation() {
     console.log('🧭 Initializing navigation...');
     
@@ -172,136 +98,138 @@ function initializeForms() {
     const contactInfo = document.querySelector('.contact-info');
     const thankYouMessage = document.querySelector('.thank-you-message');
 
-if (ctaButton && phoneInput) {
-    ctaButton.addEventListener('click', async (e) => {
-        e.preventDefault();
-        const phone = phoneInput.value.trim();
-        
-        if (phone && isValidPhone(phone)) {
+    if (ctaButton && phoneInput) {
+        ctaButton.addEventListener('click', async function(e) {
+            e.preventDefault();
+            const phone = phoneInput.value.trim();
+            
+            if (phone && isValidPhone(phone)) {
+                // Show loading state
+                ctaButton.textContent = 'جاري الإرسال...';
+                ctaButton.disabled = true;
+                ctaButton.style.background = 'rgba(117, 79, 61, 0.8)';
+                
+                // Try to save to database (animations work regardless)
+                try {
+                    if (supabase) {
+                        const result = await supabase
+                            .from('contact_submissions')
+                            .insert([{
+                                phone: phone,
+                                submission_type: 'hero'
+                            }]);
+                        
+                        if (result.error) throw result.error;
+                        console.log('✅ Phone saved to database');
+                    }
+                } catch (error) {
+                    console.log('⚠️ Database save failed, but form still works:', error);
+                }
+                
+                // Show success animation (works always)
+                setTimeout(function() {
+                    if (ctaSection) {
+                        ctaSection.style.opacity = '0';
+                        ctaSection.style.transform = 'translateY(-20px)';
+                    }
+                    if (contactInfo) {
+                        contactInfo.style.opacity = '0';
+                        contactInfo.style.transform = 'translateY(-20px)';
+                    }
+                    
+                    setTimeout(function() {
+                        if (ctaSection) ctaSection.style.display = 'none';
+                        if (contactInfo) contactInfo.style.display = 'none';
+                        
+                        // Show thank you message
+                        if (thankYouMessage) {
+                            thankYouMessage.style.display = 'block';
+                            setTimeout(function() {
+                                thankYouMessage.classList.add('show');
+                            }, 100);
+                        }
+                    }, 300);
+                }, 1500);
+            } else {
+                showError('يرجى إدخال رقم هاتف سعودي صحيح');
+            }
+        });
+    }
+    
+    // Contact form
+    const contactForm = document.querySelector('.contact-form');
+
+    if (contactForm) {
+        contactForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const nameField = contactForm.querySelector('input[type="text"]');
+            const emailField = contactForm.querySelector('input[type="email"]');
+            const phoneField = contactForm.querySelector('input[type="tel"]');
+            const messageField = contactForm.querySelector('textarea');
+            const submitButton = contactForm.querySelector('button[type="submit"]');
+            const originalText = submitButton.textContent;
+            
+            // Get form values
+            const name = nameField ? nameField.value.trim() : '';
+            const email = emailField ? emailField.value.trim() : '';
+            const phone = phoneField ? phoneField.value.trim() : '';
+            const message = messageField ? messageField.value.trim() : '';
+            
+            // Validate required fields
+            if (!name || !email || !message) {
+                showError('يرجى ملء جميع الحقول المطلوبة');
+                return;
+            }
+            
+            // Validate phone number if provided
+            if (phone && !isValidPhone(phone)) {
+                showError('يرجى إدخال رقم هاتف سعودي صحيح');
+                return;
+            }
+            
             // Show loading state
-            ctaButton.textContent = 'جاري الإرسال...';
-            ctaButton.disabled = true;
-            ctaButton.style.background = 'rgba(117, 79, 61, 0.8)';
+            submitButton.textContent = 'جاري الإرسال...';
+            submitButton.disabled = true;
+            submitButton.style.background = 'rgba(117, 79, 61, 0.8)';
             
             // Try to save to database (animations work regardless)
             try {
                 if (supabase) {
-                    const { data, error } = await supabase
+                    const result = await supabase
                         .from('contact_submissions')
                         .insert([{
-                            phone: phone,
-                            submission_type: 'hero'
+                            name: name,
+                            email: email,
+                            phone: phone || null,
+                            message: message,
+                            submission_type: 'contact'
                         }]);
                     
-                    if (error) throw error;
-                    console.log('✅ Phone saved to database');
+                    if (result.error) throw result.error;
+                    console.log('✅ Contact form saved to database');
                 }
             } catch (error) {
                 console.log('⚠️ Database save failed, but form still works:', error);
             }
             
             // Show success animation (works always)
-            setTimeout(() => {
-                if (ctaSection) {
-                    ctaSection.style.opacity = '0';
-                    ctaSection.style.transform = 'translateY(-20px)';
-                }
-                if (contactInfo) {
-                    contactInfo.style.opacity = '0';
-                    contactInfo.style.transform = 'translateY(-20px)';
-                }
+            setTimeout(function() {
+                submitButton.textContent = 'تم الإرسال!';
+                submitButton.style.background = 'linear-gradient(135deg, #754F3D, #ffffff)';
+                contactForm.reset();
                 
-                setTimeout(() => {
-                    if (ctaSection) ctaSection.style.display = 'none';
-                    if (contactInfo) contactInfo.style.display = 'none';
-                    
-                    // Show thank you message
-                    if (thankYouMessage) {
-                        thankYouMessage.style.display = 'block';
-                        setTimeout(() => {
-                            thankYouMessage.classList.add('show');
-                        }, 100);
-                    }
-                }, 300);
+                setTimeout(function() {
+                    submitButton.textContent = originalText;
+                    submitButton.disabled = false;
+                }, 2000);
             }, 1500);
-        } else {
-            showError('يرجى إدخال رقم هاتف سعودي صحيح');
-        }
-    });
+        });
+    }
+    
+    console.log('✅ Forms initialized');
 }
 
-// Contact form submission
-const contactForm = document.querySelector('.contact-form');
-
-if (contactForm) {
-    contactForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const nameField = contactForm.querySelector('input[type="text"]');
-        const emailField = contactForm.querySelector('input[type="email"]');
-        const phoneField = contactForm.querySelector('input[type="tel"]');
-        const messageField = contactForm.querySelector('textarea');
-        const submitButton = contactForm.querySelector('button[type="submit"]');
-        const originalText = submitButton.textContent;
-        
-        // Get form values
-        const name = nameField ? nameField.value.trim() : '';
-        const email = emailField ? emailField.value.trim() : '';
-        const phone = phoneField ? phoneField.value.trim() : '';
-        const message = messageField ? messageField.value.trim() : '';
-        
-        // Validate required fields
-        if (!name || !email || !message) {
-            showError('يرجى ملء جميع الحقول المطلوبة');
-            return;
-        }
-        
-        // Validate phone number if provided
-        if (phone && !isValidPhone(phone)) {
-            showError('يرجى إدخال رقم هاتف سعودي صحيح');
-            return;
-        }
-        
-        // Show loading state
-        submitButton.textContent = 'جاري الإرسال...';
-        submitButton.disabled = true;
-        submitButton.style.background = 'rgba(117, 79, 61, 0.8)';
-        
-        // Try to save to database (animations work regardless)
-        try {
-            if (supabase) {
-                const { data, error } = await supabase
-                    .from('contact_submissions')
-                    .insert([{
-                        name: name,
-                        email: email,
-                        phone: phone || null,
-                        message: message,
-                        submission_type: 'contact'
-                    }]);
-                
-                if (error) throw error;
-                console.log('✅ Contact form saved to database');
-            }
-        } catch (error) {
-            console.log('⚠️ Database save failed, but form still works:', error);
-        }
-        
-        // Show success animation (works always)
-        setTimeout(() => {
-            submitButton.textContent = 'تم الإرسال!';
-            submitButton.style.background = 'linear-gradient(135deg, #754F3D, #ffffff)';
-            contactForm.reset();
-            
-            setTimeout(() => {
-                submitButton.textContent = originalText;
-                submitButton.disabled = false;
-            }, 2000);
-        }, 1500);
-    });
-}
-
-// Stats counter animation
 function initializeAnimations() {
     console.log('🎨 Initializing animations...');
     
@@ -528,32 +456,34 @@ function isValidPhone(phone) {
         /^5[0-9]{8}$/
     ];
     
-    return validPatterns.some(pattern => pattern.test(cleanPhone));
+    return validPatterns.some(function(pattern) {
+        return pattern.test(cleanPhone);
+    });
 }
 
 function showError(message) {
     const errorDiv = document.createElement('div');
     errorDiv.textContent = message;
-    errorDiv.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: linear-gradient(135deg, #754F3D, #ffffff);
-        color: #000000;
-        padding: 15px 25px;
-        border-radius: 15px;
-        z-index: 1000;
-        font-weight: 600;
-        font-family: 'IBM Plex Sans Arabic', sans-serif;
-        box-shadow: 0 10px 30px rgba(117, 79, 61, 0.3);
-        animation: slideIn 0.4s ease;
-    `;
+    errorDiv.style.cssText = [
+        'position: fixed',
+        'top: 20px',
+        'right: 20px',
+        'background: linear-gradient(135deg, #754F3D, #ffffff)',
+        'color: #000000',
+        'padding: 15px 25px',
+        'border-radius: 15px',
+        'z-index: 1000',
+        'font-weight: 600',
+        'font-family: IBM Plex Sans Arabic, sans-serif',
+        'box-shadow: 0 10px 30px rgba(117, 79, 61, 0.3)',
+        'animation: slideIn 0.4s ease'
+    ].join(';');
     
     document.body.appendChild(errorDiv);
     
-    setTimeout(() => {
+    setTimeout(function() {
         errorDiv.style.animation = 'slideOut 0.4s ease';
-        setTimeout(() => {
+        setTimeout(function() {
             if (document.body.contains(errorDiv)) {
                 document.body.removeChild(errorDiv);
             }
@@ -563,33 +493,35 @@ function showError(message) {
 
 // CSS animations
 const style = document.createElement('style');
-style.textContent = `
-    @keyframes slideIn {
-        from {
-            transform: translateX(100%) scale(0.8);
-            opacity: 0;
-        }
-        to {
-            transform: translateX(0) scale(1);
-            opacity: 1;
-        }
-    }
-    
-    @keyframes slideOut {
-        from {
-            transform: translateX(0) scale(1);
-            opacity: 1;
-        }
-        to {
-            transform: translateX(100%) scale(0.8);
-            opacity: 0;
-        }
-    }
-`;
+style.textContent = [
+    '@keyframes slideIn {',
+    '    from {',
+    '        transform: translateX(100%) scale(0.8);',
+    '        opacity: 0;',
+    '    }',
+    '    to {',
+    '        transform: translateX(0) scale(1);',
+    '        opacity: 1;',
+    '    }',
+    '}',
+    '',
+    '@keyframes slideOut {',
+    '    from {',
+    '        transform: translateX(0) scale(1);',
+    '        opacity: 1;',
+    '    }',
+    '    to {',
+    '        transform: translateX(100%) scale(0.8);',
+    '        opacity: 0;',
+    '    }',
+    '}'
+].join('\n');
 document.head.appendChild(style);
 
 // Initialize when page loads
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('📱 DOM loaded, starting initialization...');
+    
     // Hero entrance animation
     const heroContent = document.querySelector('.hero-content');
     if (heroContent) {
@@ -597,7 +529,7 @@ document.addEventListener('DOMContentLoaded', () => {
         heroContent.style.transform = 'translateY(30px)';
         heroContent.style.transition = 'opacity 1s ease, transform 1s ease';
         
-        setTimeout(() => {
+        setTimeout(function() {
             heroContent.style.opacity = '1';
             heroContent.style.transform = 'translateY(0)';
         }, 300);
@@ -605,14 +537,16 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Navigation items animation
     const navItems = document.querySelectorAll('.nav-menu a');
-    navItems.forEach((item, index) => {
+    navItems.forEach(function(item, index) {
         item.style.opacity = '0';
         item.style.transform = 'translateY(-20px)';
-        item.style.transition = `opacity 0.6s ease ${index * 0.1}s, transform 0.6s ease ${index * 0.1}s`;
+        item.style.transition = 'opacity 0.6s ease ' + (index * 0.1) + 's, transform 0.6s ease ' + (index * 0.1) + 's';
         
-        setTimeout(() => {
+        setTimeout(function() {
             item.style.opacity = '1';
             item.style.transform = 'translateY(0)';
         }, 500 + (index * 100));
     });
+    
+    console.log('✅ DOM initialization complete');
 });
