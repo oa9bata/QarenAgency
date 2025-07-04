@@ -28,20 +28,29 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 50px;
     z-index: 1000;
-    padding: 15px 30px;
+    padding: 10px 30px;
     width: 90%;
-    max-width: 800px;
+    max-width: 900px;
+    min-height: 70px;
 }
 
 .nav-container {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    height: 100%;
 }
 
 .logo {
     display: flex;
     align-items: center;
+}
+
+.logo img {
+    width: 80px;
+    height: 80px;
+    object-fit: contain;
+    border-radius: 10px;
 }
 
 .logo-icon {
@@ -782,17 +791,25 @@ body {
 @media (max-width: 768px) {
     .navbar {
         width: 95%;
-        padding: 10px 20px;
+        padding: 8px 20px;
+        min-height: 60px;
+        max-width: none;
+    }
+    
+    .logo img {
+        width: 50px;
+        height: 50px;
     }
     
     .hamburger {
         display: flex;
+        z-index: 1001;
     }
     
     .nav-menu {
         position: fixed;
         left: -100%;
-        top: 90px;
+        top: 80px;
         flex-direction: column;
         background: rgba(0, 0, 0, 0.95);
         width: 100%;
@@ -802,10 +819,21 @@ body {
         padding: 3rem 0;
         border-radius: 20px;
         backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
     }
     
     .nav-menu.active {
         left: 0;
+    }
+    
+    .nav-menu li {
+        margin: 1rem 0;
+    }
+    
+    .nav-menu a {
+        font-size: 1.2rem;
+        padding: 1rem;
+        display: block;
     }
     
     .hero-title {
@@ -872,6 +900,46 @@ body {
 }
 
 @media (max-width: 480px) {
+    .navbar {
+        top: 10px;
+        width: 98%;
+        padding: 5px 15px;
+        min-height: 55px;
+    }
+    
+    .logo img {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .hamburger {
+        width: 30px;
+        height: 30px;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+    }
+    
+    .hamburger span {
+        width: 20px;
+        height: 2px;
+        margin: 2px 0;
+    }
+    
+    .nav-menu {
+        top: 70px;
+        padding: 2rem 0;
+    }
+    
+    .nav-menu a {
+        font-size: 1.1rem;
+        padding: 0.8rem;
+    }
+    
+    .hero {
+        padding: 100px 15px 50px;
+    }
+    
     .hero-title {
         font-size: 2.5rem;
     }
@@ -890,5 +958,20 @@ body {
     
     .container {
         padding: 0 15px;
+    }
+    
+    .cta-container {
+        max-width: 100%;
+    }
+    
+    .email-input,
+    .phone-input {
+        padding: 15px 20px;
+        font-size: 1rem;
+    }
+    
+    .cta-button {
+        padding: 15px 25px;
+        font-size: 1rem;
     }
 }
