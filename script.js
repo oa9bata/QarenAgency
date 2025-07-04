@@ -1,34 +1,45 @@
 // Simple Supabase setup (animations work regardless)
 let supabase = null;
 
+// Function to load Supabase config from API
+async function loadSupabaseConfig() {
+    try {
+        const response = await fetch('/api/config');
+        if (!response.ok) {
+            throw new Error('Failed to load config');
+        }
+        const config = await response.json();
+        return config;
+    } catch (error) {
+        console.log('⚠️ Could not load config from API:', error.message);
+        return null;
+    }
+}
+
 // Wait for page to fully load
-window.addEventListener('load', function() {
+window.addEventListener('load', async function() {
     console.log('🚀 Page loaded, initializing JavaScript...');
     
     // Check if Supabase library is available
     console.log('🔍 Checking Supabase library...', typeof window.supabase);
     
-    // Try to initialize Supabase with environment variables
+    // Load Supabase config from API
+    console.log('📡 Loading Supabase config from API...');
+    const config = await loadSupabaseConfig();
+    
+    // Try to initialize Supabase
     try {
-        const config = window.SUPABASE_CONFIG || {};
-        const SUPABASE_URL = config.url;
-        const SUPABASE_ANON_KEY = config.key;
-        
-        console.log('🔍 Environment check:', {
-            hasUrl: !!SUPABASE_URL,
-            hasKey: !!SUPABASE_ANON_KEY,
-            hasSupabase: !!window.supabase
-        });
-        
-        if (window.supabase && window.supabase.createClient && SUPABASE_URL && SUPABASE_ANON_KEY) {
-            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-            console.log('✅ Supabase connected successfully!');
+        if (config && config.supabaseUrl && config.supabaseKey && window.supabase && window.supabase.createClient) {
+            supabase = window.supabase.createClient(config.supabaseUrl, config.supabaseKey);
+            console.log('✅ Supabase connected successfully via API!');
         } else {
-            console.log('❌ Supabase not configured - missing environment variables or library');
+            console.log('❌ Supabase not configured');
             console.log('📋 Debug info:', {
-                url: SUPABASE_URL ? 'Set' : 'Missing',
-                key: SUPABASE_ANON_KEY ? 'Set' : 'Missing',
-                library: window.supabase ? 'Loaded' : 'Missing'
+                configLoaded: !!config,
+                hasUrl: !!(config?.supabaseUrl),
+                hasKey: !!(config?.supabaseKey),
+                hasLibrary: !!window.supabase,
+                hasCreateClient: !!(window.supabase?.createClient)
             });
         }
     } catch (error) {

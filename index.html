@@ -259,14 +259,6 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-    <script>
-        console.log('🔄 Supabase script loaded, checking...', typeof supabase);
-        // Environment variables will be injected by build process
-        window.SUPABASE_CONFIG = {
-            url: process.env.VITE_SUPABASE_URL || null,
-            key: process.env.VITE_SUPABASE_ANON_KEY || null
-        };
-    </script>
     <script src="script.js"></script>
 </body>
 </html>
