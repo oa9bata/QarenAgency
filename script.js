@@ -4,7 +4,7 @@ let supabase = null;
 // Function to load Supabase config from API
 async function loadSupabaseConfig() {
     try {
-        const response = await fetch('/api/config');
+        const response = await fetch('/api/supabase');
         if (!response.ok) {
             throw new Error('Failed to load config');
         }
